@@ -1,20 +1,14 @@
-const admin = require('firebase-admin');
-
-// Firebase 초기화
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-    }),
-    databaseURL: 'https://matmn-dfc2a-default-rtdb.asia-southeast1.firebasedatabase.app/', // 실제 데이터베이스 URL로 변경
-  });
-}
-
-const db = admin.database();
-
 module.exports = async (req, res) => {
+  // CORS 헤더 설정
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
   if (req.method === 'POST') {
     // 새 엔트리 추가
     const entry = req.body;
@@ -34,4 +28,3 @@ module.exports = async (req, res) => {
     res.status(405).json({ message: 'Method not allowed' });
   }
 };
-
