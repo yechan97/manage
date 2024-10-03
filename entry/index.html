@@ -224,14 +224,15 @@
             }
         }
 
-        async function loadRecentEntries() {
-            const querySnapshot = await db.collection("stock_entries").orderBy("name").get();
-            const recentContainer = document.getElementById("recent-entries");
-            recentContainer.innerHTML = "";  // 기존 데이터를 초기화
-
-            querySnapshot.forEach(doc => {
-                const entry = doc.data();
-                recentContainer.innerHTML += `<div class="entry">${entry.name} | ${entry.category} | ${entry.matName} | ${entry.color} | ${entry.quantity}장 (${entry.type}) | ${entry.notes}</div>`;
+        // Firestore에서 실시간으로 데이터 로드
+        function loadRecentEntries() {
+            db.collection("stock_entries").onSnapshot((querySnapshot) => {
+                const recentContainer = document.getElementById("recent-entries");
+                recentContainer.innerHTML = "";  // 기존 데이터를 초기화
+                querySnapshot.forEach(doc => {
+                    const entry = doc.data();
+                    recentContainer.innerHTML += `<div class="entry">${entry.name} | ${entry.category} | ${entry.matName} | ${entry.color} | ${entry.quantity}장 (${entry.type}) | ${entry.notes}</div>`;
+                });
             });
         }
     </script>
