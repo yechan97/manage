@@ -5,10 +5,9 @@
     <title>재고 관리 페이지</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap">
     <style>
-        /* 스타일 시작 */
         body {
             font-family: 'Gowun Dodum', sans-serif;
-            background-color: #f2f2f2;
+            background-color: #f2f2f2;  
             margin: 0;
             padding: 20px;
         }
@@ -23,7 +22,7 @@
         h1 {
             text-align: center;
             padding: 10px;
-            background-color: #6a9fb5;
+            background-color: #6a9fb5;  
             color: #ffffff;
             border-radius: 10px;
             margin-bottom: 20px;
@@ -37,20 +36,20 @@
             border: 1px solid #ddd;
             padding: 12px;
             text-align: center;
-            color: #333333;
+            color: #333333;  
         }
         th {
-            background-color: #8bc34a;
+            background-color: #8bc34a;  
             color: #ffffff;
         }
         .total-cell {
-            background-color: #c5e1a5;
+            background-color: #c5e1a5;  
             font-weight: bold;
-            color: #33691e;
+            color: #33691e;  
         }
         .record-table h3 {
             text-align: center;
-            background-color: #8bc34a;
+            background-color: #8bc34a;  
             color: white;
             padding: 10px;
             border-radius: 5px;
@@ -58,7 +57,7 @@
         button {
             margin-top: 20px;
             padding: 10px 20px;
-            background-color: #ff7043;
+            background-color: #ff7043;  
             color: #ffffff;
             border: none;
             border-radius: 5px;
@@ -68,16 +67,8 @@
         button:hover {
             background-color: #d84315;
         }
-        /* 스타일 끝 */
     </style>
     <script>
-        // 관리자 암호 보호
-        const password = prompt('관리자 암호를 입력하세요:');
-        if (password !== '1515') {
-            alert('잘못된 암호입니다.');
-            window.location.href = '/'; // 입출고 페이지로 리디렉션
-        }
-
         // 매트 종류와 이름 연결을 위한 매핑 설정
         const matMapping = {
             "일반": "",
@@ -92,71 +83,43 @@
             "자이언트플러스 0.5T": { "프렌치바닐라": 0, "솔리드그레이": 0, "베이지코튼": 0 },
             "빅토리매트": { "프렌치바닐라": 0, "솔리드그레이": 0, "베이지코튼": 0 },
             "빅토리매트 R": { "프렌치바닐라": 0, "솔리드그레이": 0, "베이지코튼": 0 },
-            "빅토리매트 0.5T": { "프렌치바닐라": 0, "솔리드그레이": 0, "베이지코튼": 0 }
+            "빅토리 0.5T": { "프렌치바닐라": 0, "솔리드그레이": 0, "베이지코튼": 0 }
         };
 
-        // 매트 이름 변환 함수
-        function getMatName(category, type) {
-            const suffix = matMapping[category] || "";
-            return `${type}${suffix}`;
-        }
+        document.addEventListener("DOMContentLoaded", () => {
+            loadAdminData();  
+            updateStockTable();  
+        });
 
-        // 서버에서 데이터 불러오기
-        async function loadAdminData() {
-            try {
-                const response = await fetch('/api/entries');
-                if (response.ok) {
-                    const entries = await response.json();
+        // 관리자 페이지에서 데이터 불러오기
+        function loadAdminData() {
+            fetch('/api/load-entries')
+                .then(response => response.json())
+                .then(adminEntries => {
                     const tableBody = document.getElementById("admin-table-body");
 
-                    // 테이블 초기화
-                    tableBody.innerHTML = "";
-
-                    // 데이터 처리 및 테이블 업데이트
-                    entries.forEach(entry => {
+                    adminEntries.forEach(entry => {
                         const row = document.createElement("tr");
                         row.innerHTML = `<td>${entry.name}</td><td>${entry.category}</td><td>${getMatName(entry.category, entry.matName)}</td><td>${entry.color}</td><td>${entry.quantity}</td><td>${entry.notes}</td>`;
                         tableBody.appendChild(row);
+
+                        // 입출고 내역에 따른 수량 업데이트
+                        const matName = getMatName(entry.category, entry.matName);
+                        if (entry.type === "입고") {
+                            stockData[matName][entry.color] += parseInt(entry.quantity);
+                        } else if (entry.type === "출고") {
+                            stockData[matName][entry.color] -= parseInt(entry.quantity);
+                        }
                     });
-
-                    processEntries(entries); // 재고 데이터 처리
-                    updateStockTable(); // 재고 테이블 업데이트
-                } else {
-                    console.error('데이터를 불러오는데 실패했습니다.');
-                }
-            } catch (error) {
-                console.error('데이터를 불러오는 중 오류 발생:', error);
-            }
-        }
-
-        // 재고 데이터 처리 함수
-        function processEntries(entries) {
-            // stockData 초기화
-            for (const type in stockData) {
-                for (const color in stockData[type]) {
-                    stockData[type][color] = 0;
-                }
-            }
-
-            entries.forEach(entry => {
-                const matName = getMatName(entry.category, entry.matName);
-                const quantity = parseInt(entry.quantity);
-                if (entry.type === "입고") {
-                    stockData[matName][entry.color] += quantity;
-                } else if (entry.type === "출고") {
-                    stockData[matName][entry.color] -= quantity;
-                }
-            });
+                }).catch(error => console.error("Error loading admin data:", error));
         }
 
         // 재고 테이블 업데이트 함수
         function updateStockTable() {
             const tableBody = document.getElementById("stock-table-body");
 
-            // 기존 행 모두 삭제
             tableBody.innerHTML = "";
 
-            // 새로운 행 추가
             for (const type in stockData) {
                 const colors = stockData[type];
                 const row = document.createElement("tr");
@@ -172,31 +135,25 @@
             }
         }
 
-        // 데이터 초기화 함수
-        async function clearData() {
-            if (confirm("정말 데이터를 초기화하시겠습니까?")) {
-                try {
-                    const response = await fetch('/api/entries', {
-                        method: 'DELETE'
-                    });
-                    if (response.ok) {
-                        alert("데이터가 초기화되었습니다.");
-                        window.location.reload();
-                    } else {
-                        const errorData = await response.json();
-                        alert(`데이터 초기화 중 오류 발생: ${errorData.message}`);
-                    }
-                } catch (error) {
-                    console.error('데이터 초기화 중 오류 발생:', error);
-                    alert('데이터를 초기화하는 동안 오류가 발생했습니다.');
-                }
-            }
+        // 매트 이름 변환 함수
+        function getMatName(category, type) {
+            const suffix = matMapping[category] || "";
+            return `${type}${suffix}`;
         }
 
-        // 페이지 로드 시 데이터 불러오기
-        document.addEventListener("DOMContentLoaded", () => {
-            loadAdminData();
-        });
+        // 재고 초기화 함수
+        function clearData() {
+            if (confirm("정말 데이터를 초기화하시겠습니까?")) {
+                fetch('/api/clear-entries', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            alert("데이터가 초기화되었습니다.");
+                            window.location.reload();
+                        }
+                    }).catch(error => console.error("Error clearing data:", error));
+            }
+        }
     </script>
 </head>
 <body>
