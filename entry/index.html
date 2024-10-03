@@ -100,12 +100,15 @@
             border-radius: 5px;
         }
     </style>
+    <!-- Firebase SDK 및 Firestore 추가 -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js"></script>
 </head>
 <body>
     <div class="container">
         <h1>입출고 페이지</h1>
 
-        <!-- 이름 선택 -->
+        <!-- 기사 이름 입력 -->
         <div class="form-group">
             <label for="name-select">기사 이름:</label>
             <select id="name-select" onchange="toggleCustomInput(this.value)">
@@ -170,6 +173,20 @@
     </div>
 
     <script>
+        // Firebase 설정
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Firebase 초기화
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
         document.addEventListener("DOMContentLoaded", () => {
             loadRecentEntries();  // 초기 데이터 로드
         });
@@ -184,39 +201,17 @@
             }
         }
 
-        function addEntry(type) {
+        async function addEntry(type) {
             const name = document.getElementById("name-select").value === "직접입력"
                 ? document.getElementById("custom-name").value
                 : document.getElementById("name-select").value;
             const category = document.getElementById("mat-type").value;
             const matName = document.getElementById("mat-name").value;
             const color = document.getElementById("mat-color").value;
-            const quantity = document.getElementById("quantity").value;
+            const quantity = parseInt(document.getElementById("quantity").value);
             const notes = document.getElementById("notes").value;
 
-            if (name && category && matName && color && quantity) {  // 모든 입력 값이 존재하는지 확인
-                const entry = { name, category, matName, color, quantity, type, notes };
-                let recentEntries = JSON.parse(localStorage.getItem("recentEntries")) || [];
-                recentEntries.unshift(entry);  // 맨 앞에 새 항목 추가
-                localStorage.setItem("recentEntries", JSON.stringify(recentEntries));
-                displayRecentEntries();
-            } else {
-                alert("모든 필드를 정확히 입력해주세요!");
-            }
-        }
-
-        function displayRecentEntries() {
-            const recentEntries = JSON.parse(localStorage.getItem("recentEntries")) || [];
-            const recentContainer = document.getElementById("recent-entries");
-            recentContainer.innerHTML = "";
-            recentEntries.forEach(entry => {
-                recentContainer.innerHTML += `<div class="entry">${entry.name} | ${entry.category} | ${entry.matName} | ${entry.color} | ${entry.quantity}장 (${entry.type}) | ${entry.notes}</div>`;
-            });
-        }
-
-        function loadRecentEntries() {
-            displayRecentEntries();
-        }
-    </script>
-</body>
-</html>
+            if (name && category && matName && color && quantity) {
+                // Firestore에 데이터 추가
+                await db.collection("stock_entries").add({
+                   
