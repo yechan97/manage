@@ -6,7 +6,6 @@
     <title>입출고 페이지</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap">
     <style>
-        /* 스타일 시작 */
         body {
             font-family: 'Gowun Dodum', sans-serif;
             background-color: #f2f2f2;
@@ -45,7 +44,6 @@
             border-radius: 5px;
             border: 1px solid #ddd;
             margin-bottom: 10px;
-            font-family: 'Gowun Dodum', sans-serif;
             width: 100%;
             box-sizing: border-box;
             font-size: 16px;
@@ -57,7 +55,6 @@
             border: 1px solid #ddd;
             border-radius: 5px;
             resize: none;
-            font-family: 'Gowun Dodum', sans-serif;
             margin-bottom: 10px;
             font-size: 16px;
         }
@@ -74,7 +71,6 @@
             border-radius: 5px;
             cursor: pointer;
             font-size: 18px;
-            font-family: 'Gowun Dodum', sans-serif;
             width: 48%;
             box-sizing: border-box;
         }
@@ -91,7 +87,6 @@
             border-radius: 5px;
             color: white;
             font-size: 20px;
-            font-family: 'Gowun Dodum', sans-serif;
         }
         .entry {
             background: #e8f5e9;
@@ -100,7 +95,6 @@
             font-size: 16px;
             border-radius: 5px;
         }
-        /* 스타일 끝 */
     </style>
 </head>
 <body>
@@ -172,19 +166,17 @@
     </div>
 
     <script>
-        // 이름 선택 시 직접 입력 필드 토글
         function toggleCustomInput(selectedValue) {
             const customNameInput = document.getElementById("custom-name");
             if (selectedValue === "직접입력") {
                 customNameInput.style.display = "inline";
             } else {
                 customNameInput.style.display = "none";
-                customNameInput.value = "";  // 초기화
+                customNameInput.value = "";
             }
         }
 
-        // 서버로 데이터 전송하여 새 엔트리 추가
-        async function addEntry(type) {
+        function addEntry(type) {
             const name = document.getElementById("name-select").value === "직접입력"
                 ? document.getElementById("custom-name").value
                 : document.getElementById("name-select").value;
@@ -197,57 +189,38 @@
             if (name && category && matName && color && quantity) {
                 const entry = { name, category, matName, color, quantity, type, notes };
 
-                try {
-                    const response = await fetch('/api/entries', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(entry)
-                    });
-
-                    if (response.ok) {
-                        alert('입력이 성공적으로 추가되었습니다.');
-                        // 입력 필드 초기화
-                        document.getElementById("quantity").value = "1";
-                        document.getElementById("notes").value = "";
-                        displayRecentEntries(); // 최근 내역 업데이트
-                    } else {
-                        const errorData = await response.json();
-                        alert(`입력 중 오류 발생: ${errorData.message}`);
+                // 서버로 데이터 전송
+                fetch('/api/save-entry', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(entry)
+                }).then(response => response.json())
+                  .then(data => {
+                    if (data.status === 'success') {
+                      console.log("Entry successfully saved!");
+                      loadEntries();  // 새 데이터 로드
                     }
-                } catch (error) {
-                    console.error('입력 중 오류 발생:', error);
-                    alert('입력하는 동안 오류가 발생했습니다.');
-                }
+                }).catch(error => console.error("Error saving entry:", error));
             } else {
                 alert("모든 필드를 정확히 입력해주세요!");
             }
         }
 
-        // 최근 입출고 내역 표시
-        async function displayRecentEntries() {
-            try {
-                const response = await fetch('/api/entries');
-                if (response.ok) {
-                    const entries = await response.json();
-                    const recentContainer = document.getElementById("recent-entries");
-                    recentContainer.innerHTML = "";
-                    entries.reverse().forEach(entry => {
-                        recentContainer.innerHTML += `<div class="entry">${entry.name} | ${entry.category} | ${entry.matName} | ${entry.color} | ${entry.quantity}장 (${entry.type}) | ${entry.notes}</div>`;
-                    });
-                } else {
-                    console.error('엔트리를 가져오는데 실패했습니다.');
-                }
-            } catch (error) {
-                console.error('엔트리를 가져오는 동안 오류 발생:', error);
-            }
+        function loadEntries() {
+            fetch('/api/load-entries')
+              .then(response => response.json())
+              .then(data => {
+                const recentContainer = document.getElementById("recent-entries");
+                recentContainer.innerHTML = "";
+                data.forEach(entry => {
+                  recentContainer.innerHTML += `<div class="entry">${entry.name} | ${entry.category} | ${entry.matName} | ${entry.color} | ${entry.quantity}장 (${entry.type}) | ${entry.notes}</div>`;
+                });
+              }).catch(error => console.error("Error loading entries:", error));
         }
 
-        // 페이지 로드 시 최근 입출고 내역 불러오기
-        document.addEventListener("DOMContentLoaded", () => {
-            displayRecentEntries();
-        });
+        document.addEventListener("DOMContentLoaded", loadEntries);
     </script>
 </body>
 </html>
