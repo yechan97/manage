@@ -44,6 +44,7 @@
             border-radius: 5px;
             border: 1px solid #ddd;
             margin-bottom: 10px;
+            font-family: 'Gowun Dodum', sans-serif;
             width: 100%;
             box-sizing: border-box;
             font-size: 16px;
@@ -55,6 +56,7 @@
             border: 1px solid #ddd;
             border-radius: 5px;
             resize: none;
+            font-family: 'Gowun Dodum', sans-serif;
             margin-bottom: 10px;
             font-size: 16px;
         }
@@ -71,6 +73,7 @@
             border-radius: 5px;
             cursor: pointer;
             font-size: 18px;
+            font-family: 'Gowun Dodum', sans-serif;
             width: 48%;
             box-sizing: border-box;
         }
@@ -87,6 +90,7 @@
             border-radius: 5px;
             color: white;
             font-size: 20px;
+            font-family: 'Gowun Dodum', sans-serif;
         }
         .entry {
             background: #e8f5e9;
@@ -160,19 +164,24 @@
 
         <!-- 최근 입출고 내역 -->
         <div class="recent-entries">
-            <h3>최근 입출고 내역</h3>
+            <h3>최근 입출고 내역 (정각마다 초기화)</h3>
             <div id="recent-entries"></div>
         </div>
     </div>
 
     <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            loadRecentEntries();  // 초기 데이터 로드
+            resetEntriesOnHour(); // 정각마다 초기화
+        });
+
         function toggleCustomInput(selectedValue) {
             const customNameInput = document.getElementById("custom-name");
             if (selectedValue === "직접입력") {
                 customNameInput.style.display = "inline";
             } else {
                 customNameInput.style.display = "none";
-                customNameInput.value = "";
+                customNameInput.value = "";  // 초기화
             }
         }
 
@@ -186,41 +195,45 @@
             const quantity = document.getElementById("quantity").value;
             const notes = document.getElementById("notes").value;
 
-            if (name && category && matName && color && quantity) {
+            if (name && category && matName && color && quantity) {  // 모든 입력 값이 존재하는지 확인
                 const entry = { name, category, matName, color, quantity, type, notes };
+                console.log("Entry added:", entry);  // 데이터 확인용 로그
 
-                // 서버로 데이터 전송
-                fetch('/api/save-entry', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(entry)
-                }).then(response => response.json())
-                  .then(data => {
-                    if (data.status === 'success') {
-                      console.log("Entry successfully saved!");
-                      loadEntries();  // 새 데이터 로드
-                    }
-                }).catch(error => console.error("Error saving entry:", error));
+                let recentEntries = JSON.parse(localStorage.getItem("recentEntries")) || [];
+                recentEntries.unshift(entry);  // 맨 앞에 새 항목 추가
+                localStorage.setItem("recentEntries", JSON.stringify(recentEntries));
+                displayRecentEntries();
+
+                let adminEntries = JSON.parse(localStorage.getItem("adminEntries")) || [];
+                adminEntries.push(entry);
+                localStorage.setItem("adminEntries", JSON.stringify(adminEntries));
             } else {
                 alert("모든 필드를 정확히 입력해주세요!");
             }
         }
 
-        function loadEntries() {
-            fetch('/api/load-entries')
-              .then(response => response.json())
-              .then(data => {
-                const recentContainer = document.getElementById("recent-entries");
-                recentContainer.innerHTML = "";
-                data.forEach(entry => {
-                  recentContainer.innerHTML += `<div class="entry">${entry.name} | ${entry.category} | ${entry.matName} | ${entry.color} | ${entry.quantity}장 (${entry.type}) | ${entry.notes}</div>`;
-                });
-              }).catch(error => console.error("Error loading entries:", error));
+        function displayRecentEntries() {
+            const recentEntries = JSON.parse(localStorage.getItem("recentEntries")) || [];
+            const recentContainer = document.getElementById("recent-entries");
+            recentContainer.innerHTML = "";
+            recentEntries.forEach(entry => {
+                recentContainer.innerHTML += `<div class="entry">${entry.name} | ${entry.category} | ${entry.matName} | ${entry.color} | ${entry.quantity}장 (${entry.type}) | ${entry.notes}</div>`;
+            });
         }
 
-        document.addEventListener("DOMContentLoaded", loadEntries);
+        function resetEntriesOnHour() {
+            const now = new Date();
+            const millisTillNextHour = (60 - now.getMinutes()) * 60000 - now.getSeconds() * 1000;
+            setTimeout(() => {
+                localStorage.removeItem("recentEntries");
+                displayRecentEntries();
+                resetEntriesOnHour();  // 다음 정각을 다시 설정
+            }, millisTillNextHour);
+        }
+
+        function loadRecentEntries() {
+            displayRecentEntries();
+        }
     </script>
 </body>
 </html>
