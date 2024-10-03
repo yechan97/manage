@@ -224,7 +224,6 @@
             }
         }
 
-        // Firestore에서 실시간으로 데이터 로드
         function loadRecentEntries() {
             db.collection("stock_entries").onSnapshot((querySnapshot) => {
                 const recentContainer = document.getElementById("recent-entries");
