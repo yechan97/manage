@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>입출고 페이지</title>
+    <title>재고 관리 페이지</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap">
     <style>
-        /* 동일한 스타일 유지 */
+        /* 기존 스타일 유지 */
     </style>
     <!-- Firebase SDK 추가 -->
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
@@ -14,46 +14,48 @@
 </head>
 <body>
     <div class="container">
-        <h1>입출고 페이지</h1>
+        <h1>재고 관리 페이지</h1>
 
-        <!-- 이름 선택 -->
-        <div class="form-group">
-            <label for="name-select">기사 이름:</label>
-            <select id="name-select" onchange="toggleCustomInput(this.value)">
-                <option>김수재</option>
-                <option>문경훈</option>
-                <!-- 생략 -->
-                <option>직접입력</option>
-            </select>
-            <input type="text" id="custom-name" placeholder="이름 입력" style="display: none;">
-        </div>
+        <!-- 재고 테이블 -->
+        <table id="stock-table">
+            <thead>
+                <tr>
+                    <th rowspan="2">매트 종류</th>
+                    <th colspan="3">색상</th>
+                    <th rowspan="2">합계</th>
+                </tr>
+                <tr>
+                    <th>프렌치바닐라</th>
+                    <th>솔리드그레이</th>
+                    <th>베이지코튼</th>
+                </tr>
+            </thead>
+            <tbody id="stock-table-body">
+                <!-- 동적으로 재고가 여기에 추가될 것임 -->
+            </tbody>
+        </table>
 
-        <!-- 매트 종류, 색상, 수량 입력 -->
-        <div class="form-group">
-            <!-- 모든 입력 필드 유지 -->
-        </div>
-
-        <!-- 비고 입력 -->
-        <div class="form-group">
-            <label for="notes">비고:</label>
-            <textarea id="notes" placeholder="비고 내용을 입력하세요."></textarea>
-        </div>
-
-        <!-- 입고/출고 버튼 -->
-        <div class="buttons">
-            <button onclick="addEntry('입고')">입고</button>
-            <button onclick="addEntry('출고')">출고</button>
-        </div>
-
-        <!-- 최근 입출고 내역 -->
-        <div class="recent-entries">
-            <h3>최근 입출고 내역</h3>
-            <div id="recent-entries"></div>
-        </div>
+        <!-- 데이터 기록 내역 -->
+        <h3 class="record-table">입출고 기록 내역</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>이름</th>
+                    <th>1차 분류</th>
+                    <th>매트 종류</th>
+                    <th>색상</th>
+                    <th>수량</th>
+                    <th>비고</th>
+                </tr>
+            </thead>
+            <tbody id="admin-table-body">
+                <!-- 데이터가 여기에 동적으로 추가될 것임 -->
+            </tbody>
+        </table>
     </div>
 
+    <!-- Firebase 초기화 및 데이터 읽기 스크립트 -->
     <script>
-        // Firebase 설정
         const firebaseConfig = {
             apiKey: "YOUR_API_KEY",
             authDomain: "YOUR_AUTH_DOMAIN",
@@ -63,43 +65,29 @@
             appId: "YOUR_APP_ID"
         };
         
-        // Firebase 초기화
         const app = firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // 데이터 추가 함수
-        async function addEntry(type) {
-            const name = document.getElementById("name-select").value === "직접입력"
-                ? document.getElementById("custom-name").value
-                : document.getElementById("name-select").value;
-            const category = document.getElementById("mat-type").value;
-            const matName = document.getElementById("mat-name").value;
-            const color = document.getElementById("mat-color").value;
-            const quantity = document.getElementById("quantity").value;
-            const notes = document.getElementById("notes").value;
+        async function loadEntries() {
+            const querySnapshot = await db.collection("stock_entries").get();
+            const tableBody = document.getElementById("admin-table-body");
+            tableBody.innerHTML = "";  // 기존 데이터 초기화
 
-            if (name && category && matName && color && quantity) {
-                const entry = { name, category, matName, color, quantity, type, notes };
-                await db.collection("stock_entries").add(entry);  // Firestore에 데이터 저장
-                alert("데이터가 추가되었습니다!");
-                loadRecentEntries();  // 추가 후 데이터 다시 로드
-            } else {
-                alert("모든 필드를 정확히 입력해주세요!");
-            }
-        }
-
-        // Firestore에서 최근 데이터 로드
-        async function loadRecentEntries() {
-            const entries = await db.collection("stock_entries").orderBy("name").get();
-            const recentContainer = document.getElementById("recent-entries");
-            recentContainer.innerHTML = "";
-            entries.forEach(doc => {
+            querySnapshot.forEach(doc => {
                 const entry = doc.data();
-                recentContainer.innerHTML += `<div class="entry">${entry.name} | ${entry.category} | ${entry.matName} | ${entry.color} | ${entry.quantity}장 (${entry.type}) | ${entry.notes}</div>`;
+                const row = `<tr>
+                    <td>${entry.name}</td>
+                    <td>${entry.category}</td>
+                    <td>${entry.matName}</td>
+                    <td>${entry.color}</td>
+                    <td>${entry.quantity}장</td>
+                    <td>${entry.notes}</td>
+                </tr>`;
+                tableBody.innerHTML += row;
             });
         }
 
-        document.addEventListener("DOMContentLoaded", loadRecentEntries);  // 페이지 로딩 시 초기 데이터 로드
+        document.addEventListener("DOMContentLoaded", loadEntries);
     </script>
 </body>
 </html>
