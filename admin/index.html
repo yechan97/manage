@@ -69,6 +69,9 @@
             background-color: #d84315;
         }
     </style>
+    <!-- Firebase SDK 추가 -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js"></script>
 </head>
 <body>
     <div class="container">
@@ -116,14 +119,49 @@
     </div>
 
     <script>
-        // 매트 종류와 이름 연결을 위한 매핑 설정
-        const matMapping = {
-            "일반": "",
-            "리퍼브": " R",
-            "0.5t": " 0.5T"
+        // Firebase 설정 값 사용
+        const firebaseConfig = {
+            apiKey: "AIzaSyCX1eCcZ4mryYrQ9Slqql2KYs3lvmZ3aAc",
+            authDomain: "matmn-dfc2a.firebaseapp.com",
+            databaseURL: "https://matmn-dfc2a-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "matmn-dfc2a",
+            storageBucket: "matmn-dfc2a.appspot.com",
+            messagingSenderId: "643906380801",
+            appId: "1:643906380801:web:d8c4bf7db552bdd5624c00",
+            measurementId: "G-LFMXEP8NN7"
         };
 
-        // 전체 재고 데이터를 관리할 객체
+        // Firebase 초기화
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        document.addEventListener("DOMContentLoaded", () => {
+            loadEntries();  // Firestore 데이터 로드
+            updateStockTable();  // 재고 테이블 업데이트
+        });
+
+        // Firestore에서 입출고 기록 로드
+        async function loadEntries() {
+            const querySnapshot = await db.collection("stock_entries").get();
+            const tableBody = document.getElementById("admin-table-body");
+            tableBody.innerHTML = "";  // 기존 데이터를 초기화
+
+            querySnapshot.forEach(doc => {
+                const entry = doc.data();
+                const row = `<tr>
+                    <td>${entry.name}</td>
+                    <td>${entry.category}</td>
+                    <td>${entry.matName}</td>
+                    <td>${entry.color}</td>
+                    <td>${entry.quantity}장</td>
+                    <td>${entry.notes}</td>
+                </tr>`;
+                tableBody.innerHTML += row;
+                updateStockData(entry);  // 데이터에 따라 재고 업데이트
+            });
+        }
+
+        // 재고 데이터 업데이트
         let stockData = {
             "자이언트플러스": { "프렌치바닐라": 0, "솔리드그레이": 0, "베이지코튼": 0 },
             "자이언트플러스 R": { "프렌치바닐라": 0, "솔리드그레이": 0, "베이지코튼": 0 },
@@ -133,65 +171,44 @@
             "빅토리매트 0.5T": { "프렌치바닐라": 0, "솔리드그레이": 0, "베이지코튼": 0 }
         };
 
-        document.addEventListener("DOMContentLoaded", () => {
-            loadAdminData();  // 초기 데이터 로드
-            updateStockTable();  // 테이블 업데이트
-        });
-
-        // 관리자 페이지에서 데이터 불러오기
-        function loadAdminData() {
-            const adminEntries = JSON.parse(localStorage.getItem("adminEntries")) || [];
-            const tableBody = document.getElementById("admin-table-body");
-
-            tableBody.innerHTML = "";  // 기존 데이터를 초기화
-            adminEntries.forEach(entry => {
-                const row = document.createElement("tr");
-                row.innerHTML = `<td>${entry.name}</td><td>${entry.category}</td><td>${getMatName(entry.category, entry.matName)}</td><td>${entry.color}</td><td>${entry.quantity}</td><td>${entry.notes}</td>`;
-                tableBody.appendChild(row);
-
-                // 입출고 내역에 따른 수량 업데이트
-                const matName = getMatName(entry.category, entry.matName);
-                if (entry.type === "입고") {
-                    stockData[matName][entry.color] += parseInt(entry.quantity);
-                } else if (entry.type === "출고") {
-                    stockData[matName][entry.color] -= parseInt(entry.quantity);
-                }
-            });
+        // Firestore 데이터에 따라 재고 업데이트
+        function updateStockData(entry) {
+            const matName = entry.category === "리퍼브" ? entry.matName + " R" : entry.category === "0.5t" ? entry.matName + " 0.5T" : entry.matName;
+            if (entry.type === "입고") {
+                stockData[matName][entry.color] += parseInt(entry.quantity);
+            } else if (entry.type === "출고") {
+                stockData[matName][entry.color] -= parseInt(entry.quantity);
+            }
+            updateStockTable();
         }
 
-        // 재고 테이블 업데이트 함수
+        // 재고 테이블 업데이트
         function updateStockTable() {
             const tableBody = document.getElementById("stock-table-body");
-            tableBody.innerHTML = "";  // 기존 테이블 초기화
-
-            // 새로운 행 추가
+            tableBody.innerHTML = "";  // 기존 데이터를 초기화
             for (const type in stockData) {
                 const colors = stockData[type];
-                const row = document.createElement("tr");
                 let total = 0;
-
-                row.innerHTML = `<td>${type}</td>`;
+                let row = `<tr><td>${type}</td>`;
                 for (const color in colors) {
-                    row.innerHTML += `<td>${colors[color]}장</td>`;
+                    row += `<td>${colors[color]}장</td>`;
                     total += colors[color];
                 }
-                row.innerHTML += `<td class="total-cell">${total}장</td>`;
-                tableBody.appendChild(row);
+                row += `<td class="total-cell">${total}장</td></tr>`;
+                tableBody.innerHTML += row;
             }
-        }
-
-        // 매트 이름 변환 함수
-        function getMatName(category, type) {
-            const suffix = matMapping[category] || "";
-            return `${type}${suffix}`;
         }
 
         // 데이터 초기화 함수
         function clearData() {
             if (confirm("정말 데이터를 초기화하시겠습니까?")) {
-                localStorage.removeItem("adminEntries");
+                db.collection("stock_entries").get().then((querySnapshot) => {
+                    querySnapshot.forEach((doc) => {
+                        doc.ref.delete();
+                    });
+                });
                 alert("데이터가 초기화되었습니다.");
-                window.location.reload();
+                location.reload();
             }
         }
     </script>
