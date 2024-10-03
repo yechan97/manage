@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: 'Gowun Dodum', sans-serif;
-            background-color: #f2f2f2;  
+            background-color: #f2f2f2;  /* 전체 배경색을 부드러운 회색으로 변경 */
             margin: 0;
             padding: 20px;
         }
@@ -22,7 +22,7 @@
         h1 {
             text-align: center;
             padding: 10px;
-            background-color: #6a9fb5;  
+            background-color: #6a9fb5;  /* 차분한 파란색 배경 */
             color: #ffffff;
             border-radius: 10px;
             margin-bottom: 20px;
@@ -36,20 +36,20 @@
             border: 1px solid #ddd;
             padding: 12px;
             text-align: center;
-            color: #333333;  
+            color: #333333;  /* 텍스트 색상을 진한 회색으로 설정 */
         }
         th {
-            background-color: #8bc34a;  
+            background-color: #8bc34a;  /* 헤더 배경을 연두색으로 설정 */
             color: #ffffff;
         }
         .total-cell {
-            background-color: #c5e1a5;  
+            background-color: #c5e1a5;  /* 합계 셀은 연한 연두색 배경 */
             font-weight: bold;
-            color: #33691e;  
+            color: #33691e;  /* 진한 녹색 텍스트 */
         }
         .record-table h3 {
             text-align: center;
-            background-color: #8bc34a;  
+            background-color: #8bc34a;  /* 연두색 배경 */
             color: white;
             padding: 10px;
             border-radius: 5px;
@@ -57,7 +57,7 @@
         button {
             margin-top: 20px;
             padding: 10px 20px;
-            background-color: #ff7043;  
+            background-color: #ff7043;  /* 오렌지색 버튼 */
             color: #ffffff;
             border: none;
             border-radius: 5px;
@@ -87,39 +87,39 @@
         };
 
         document.addEventListener("DOMContentLoaded", () => {
-            loadAdminData();  
-            updateStockTable();  
+            loadAdminData();  // 초기 데이터 로드
+            updateStockTable();  // 테이블 업데이트
         });
 
         // 관리자 페이지에서 데이터 불러오기
         function loadAdminData() {
-            fetch('/api/load-entries')
-                .then(response => response.json())
-                .then(adminEntries => {
-                    const tableBody = document.getElementById("admin-table-body");
+            const adminEntries = JSON.parse(localStorage.getItem("adminEntries")) || [];
+            const tableBody = document.getElementById("admin-table-body");
 
-                    adminEntries.forEach(entry => {
-                        const row = document.createElement("tr");
-                        row.innerHTML = `<td>${entry.name}</td><td>${entry.category}</td><td>${getMatName(entry.category, entry.matName)}</td><td>${entry.color}</td><td>${entry.quantity}</td><td>${entry.notes}</td>`;
-                        tableBody.appendChild(row);
+            // 테이블에 데이터 추가
+            adminEntries.forEach(entry => {
+                const row = document.createElement("tr");
+                row.innerHTML = `<td>${entry.name}</td><td>${entry.category}</td><td>${getMatName(entry.category, entry.matName)}</td><td>${entry.color}</td><td>${entry.quantity}</td><td>${entry.notes}</td>`;
+                tableBody.appendChild(row);
 
-                        // 입출고 내역에 따른 수량 업데이트
-                        const matName = getMatName(entry.category, entry.matName);
-                        if (entry.type === "입고") {
-                            stockData[matName][entry.color] += parseInt(entry.quantity);
-                        } else if (entry.type === "출고") {
-                            stockData[matName][entry.color] -= parseInt(entry.quantity);
-                        }
-                    });
-                }).catch(error => console.error("Error loading admin data:", error));
+                // 입출고 내역에 따른 수량 업데이트
+                const matName = getMatName(entry.category, entry.matName);  // 매트 이름 변환
+                if (entry.type === "입고") {
+                    stockData[matName][entry.color] += parseInt(entry.quantity);
+                } else if (entry.type === "출고") {
+                    stockData[matName][entry.color] -= parseInt(entry.quantity);
+                }
+            });
         }
 
         // 재고 테이블 업데이트 함수
         function updateStockTable() {
             const tableBody = document.getElementById("stock-table-body");
 
+            // 기존 행 모두 삭제
             tableBody.innerHTML = "";
 
+            // 새로운 행 추가
             for (const type in stockData) {
                 const colors = stockData[type];
                 const row = document.createElement("tr");
@@ -144,14 +144,9 @@
         // 재고 초기화 함수
         function clearData() {
             if (confirm("정말 데이터를 초기화하시겠습니까?")) {
-                fetch('/api/clear-entries', { method: 'POST' })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'success') {
-                            alert("데이터가 초기화되었습니다.");
-                            window.location.reload();
-                        }
-                    }).catch(error => console.error("Error clearing data:", error));
+                localStorage.removeItem("adminEntries");
+                alert("데이터가 초기화되었습니다.");
+                window.location.reload();
             }
         }
     </script>
